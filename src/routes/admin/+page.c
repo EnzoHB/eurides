@@ -5,7 +5,7 @@
 
 #include "assets/asset_banner.h"
 
-#include "components/component_breadcrumbs.h"
+#include "components/inline_component_breadcrumbs.h"
 #include "components/component_chooser.h"
 
 #include "routes/admin/products/+page.h"
@@ -14,7 +14,7 @@
 
 static void header()
 {
-    component_breadcrumbs("/administração/");
+    inline_component_breadcrumbs("/administração/");
     asset_banner();
 }
 

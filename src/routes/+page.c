@@ -5,7 +5,7 @@
 
 #include "assets/asset_banner.h"
 
-#include "components/component_breadcrumbs.h"
+#include "components/inline_component_breadcrumbs.h"
 #include "components/component_chooser.h"
 
 #include "routes/+page.h"
@@ -16,7 +16,7 @@
 // so that we do not get multiple definition error
 static void header()
 {
-    component_breadcrumbs("/");
+    inline_component_breadcrumbs("/");
     asset_banner();
 }
 
@@ -27,8 +27,8 @@ int route_index()
     // Outside of a function the compound literal becomes a static array
     // at compilation time. However, inside a function, this behavior does not automatically 
     // apply unless we define this variable as static. When that happens, the array becomes
-    // globally available and the pointer will always, regardless, point to it. This, of course,
-    // introduces vulnerabilities when mutating the array, but as we are only concerned in reading 
+    // globally available within the scope of the function and the pointer will always, regardless, point to it. 
+    // This, of course, introduces vulnerabilities when mutating the array, but as we are only concerned in reading 
     // the options, this will and should not be a problem
     static char* options[] = DRAW(
         "1. Administração",

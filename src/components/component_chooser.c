@@ -28,17 +28,17 @@ int component_chooser(void (*header)(), char* options[], void (*footer)())
 
             if (selected == i)
             {
-                strong(1);
-                    span(blink? "> ": "  ");
-                    span(options[i]); 
-                    br();
-                strong(0);
+                html_strong(1);
+                    html_span(blink? "> ": "  ");
+                    html_span(options[i]); 
+                    html_br();
+                html_strong(0);
                 continue;
             }
 
-            span("  ");
-            span(options[i]);
-            br();
+            html_span("  ");
+            html_span(options[i]);
+            html_br();
         };
 
         int ch = getch();

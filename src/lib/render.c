@@ -1,30 +1,45 @@
 #include <stdio.h>
+#include <unistd.h>
 #include "lib/render.h"
 
-static int height = 0;
+static int page_height = 0;
+static int page_current_y = 0;
+static int window_start_y = 0;
+static int window_end_y = 40;
 
 // https://www.reddit.com/r/learnprogramming/comments/o7xae7/best_way_to_clear_terminal_in_c/
 void clear_screen() 
 {
     printf("\e[1;1H\e[2J");
-    height = 0;
+    page_height = 0;
 }
 
 // Breaks a line in the console
-void br()
+void html_br()
 {
     printf("\n");
-    height++;
+    page_height++;
 }
 
 int get_current_height()
 {
-    return height;
+    return page_height;
+};
+
+int move_cursor(int row, int column) 
+{
+    if (row < 1 || column < 1)
+    {
+        return 1;
+    }
+
+    printf("\033[%d;%dH", row, column);
+    return 0;
 };
 
 // Controls wheter text rendered is bold or not 
 // depending on a flag
-void strong(int open)
+void html_strong(int open)
 {
     if (open)
     {
@@ -38,25 +53,31 @@ void strong(int open)
 }
 
 // Prints a line of text, alias to printf
-void span(char line[])
+void html_span(char *line)
 {
     printf("%s", line);
 }
 
-// Renders a paragraph of text
-void p(char line[])
+void html_single_char(char letter)
 {
-    span(line);
-    br();
+    printf("%c", letter);
+}
+
+// Renders a paragraph of text
+void html_p(char *line)
+{
+    html_span(line);
+    html_br();
 }
 
 // Renders a null terminating array of strings to the console
-void render(char* lines[])
+void render(char **lines)
 {   
     int counter = 0;
 
     for (int i = 0; lines[i] != NULL; i++)
     {
-        p(lines[i]);
+        html_p(lines[i]);
     }
 }
+

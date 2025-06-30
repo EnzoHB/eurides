@@ -17,6 +17,9 @@ int readch()
     // User has typed something
     if (result == 1)
     {
+        // The casting is necessary because
+        // we need to apply offsets to its
+        // decimal representation
         return (unsigned char) ch;
     }
     // Timeout while reading key
@@ -27,12 +30,12 @@ int readch()
     // stdin was closed or other error
     else if (result == -1)
     {
-        return 2;
+        return -2;
     }
 }
 
 // https://stackoverflow.com/questions/3276546/how-to-implement-getch-function-of-c-in-linux
-// reads from keypress, doesn't echo, modified
+// reads from keypress, doesn't echo, blocks until timeout, modified by Enzo
 int getch()
 {
     // Creates two uninitialized termios structs representing the 

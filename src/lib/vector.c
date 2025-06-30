@@ -2,8 +2,9 @@
 #include <stdlib.h>
 // Access to memcpy and memmov
 #include <string.h>
+#include <stdio.h>
 
-static int before_length_increment(Vector* vector)
+static int before_length_increment(Vector *vector)
 {
     if (vector->capacity < vector->length + 1)
     {
@@ -22,7 +23,7 @@ static int before_length_increment(Vector* vector)
     return 0;
 };
 
-static int before_length_decrement(Vector* vector)
+static int before_length_decrement(Vector *vector)
 {
     if (vector->capacity == 1)
     {
@@ -46,9 +47,8 @@ static int before_length_decrement(Vector* vector)
     return 0;
 }
 
-Vector* vector_init(Vector* vector, size_t element_size)
+Vector *vector_init(Vector *vector, size_t element_size)
 {
-    vector->initialized = 1;
     vector->length = 0;
     vector->capacity = 1;
     vector->element_size = element_size;
@@ -56,7 +56,7 @@ Vector* vector_init(Vector* vector, size_t element_size)
     return vector;
 }
 
-size_t vector_push(Vector* vector, void* p)
+size_t vector_push(Vector *vector, void *p)
 {
     if (before_length_increment(vector))
     {
@@ -69,7 +69,7 @@ size_t vector_push(Vector* vector, void* p)
     return ++vector->length;
 };
 
-Vector* vector_populate_from_file(char path[], Vector* vector)
+Vector *vector_populate_from_file(Vector *vector, char *path)
 {
     FILE* file = fopen(path, "rb");
 

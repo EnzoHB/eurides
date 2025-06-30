@@ -2,7 +2,8 @@
     "files.associations": {
         "render.h": "c",
         "+page.h": "c",
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "inline_component_breadcrumbs.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }

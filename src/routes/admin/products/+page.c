@@ -1,88 +1,202 @@
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+
 #include "macros.h"
 #include "keycodes.h"
 
-#include "lib/io.h"
+#include "lib/terminal.h"
+#include "lib/render.h"
+#include "lib/vector.h"
 
 #include "assets/asset_banner.h"
 
-#include "components/component_breadcrumbs.h"
+#include "components/inline_component_table.h"
+#include "components/inline_component_breadcrumbs.h"
 #include "components/component_chooser.h"
 
 #include "routes/admin/products/+page.h"
 
 static void header()
 {
-    component_breadcrumbs("/administração/");
+    inline_component_breadcrumbs("/administração/produtos/");
     asset_banner();
 }
 
-typedef struct Product {
-    int id;
-    char name[128];
-    int price;
-} Product;
-
-static char path[] = "../../../../data/products.dat"; 
-
 static void footer()
 {
-    size_t length;
-    Product* products = (Product*)alloc_structs_from_file(path, &length); // Pas the sieze of the struct
+   
+}
 
-    // Render fallback if products pointer is null
+#define SEARCH_FOCUSED 0
+#define BUTTON_FOCUSED 1
+#define TABLE_FOCUSED 2
 
-    // char** 
-    // An array of an array of strings, each is going to receive a row
-    // Maybe first I have to create a table api that will allow me to declare 
-    // These things at ccompilation time. 
+static Vector cells;
+static Vector products;
 
-    for (size_t i = 0; i < length; i++)
+static char path[] = "../../../../data/products.dat";
+static int products_initialized = 0;
+static int cells_initialized = 0;
+
+static void setup_products()
+{
+    if (products_initialized)
     {
-        Product product = products[i];
-    }
-    // We have to convert products into a struct that can be understood by the table tag
-    // We have to passing a null terminated array of null terminated arrays all as 
-    // Here we need to render all products from products .dat in a table like manner
+        return;
+    };
 
-    // TODO: Create a function that abstracts this routine
-    //
+    // Here we should test if we have allocated memory
+    vector_init(&products, sizeof(Product));
+    vector_populate_from_file(&products, path);
+    products_initialized++;
+
+};
+
+static void setup_cells()
+{
+    if (cells_initialized)
+    {
+        return;
+    }
+
+    void *p = malloc(sizeof(Cell));
+
+    free(p);
+
 }
 
 int route_index_admin_products()
 {
-    static char* options[] = DRAW(
-        "1. Editar",
-        "2. Popular",
-        "3. Limpar"
-    );
+    static char cursor = '_'; // '█';
 
-    int option = component_chooser(header, options, footer);
+    setup_products();   
+    setup_cells();
 
-    switch (option)
-    {
-        case 0:
+    int focus = 0;
 
-            //Edit
-            break;
-            
-        case 1:
+    // Maybe transform this in a field
+    char query[128] = "";
+    size_t query_length = 0;
+    size_t cursor_column = 1;
+    int blink = 0;
 
-            // Populate
-            break;
-        
-        case 2:
+    static size_t header_height;
     
-            // Clear
-            break;
+    // We need to abstract this logic to allow for the coupling of fields
+    while(1)
+    {
+        clear_screen();
+        header();
 
-        case BACK_BUTTON:
-            return 1;
+        html_strong(1);
+            html_span("Pesquisar: ");
+        html_strong(0);
+
+        for (int i = 0; i < query_length; i++)
+        {
+            if (blink && i + 1 == cursor_column)
+            {
+                html_single_char(cursor);
+                continue;
+            }
+
+            html_single_char(query[i]);
+        };
+
+        if (blink && query_length + 1 == cursor_column)
+        {
+            html_single_char(cursor);
+        };
+
+        html_br();
+
+        int ch = getch();
+
+        // Blinking logic
+        if (ch == -1)
+        {
+            blink += blink? -1: 1;    
+        }
+        else 
+        {
+            blink = 1;
+        }
+
+        switch (focus)
+        {
+            case SEARCH_FOCUSED:
+
+                if (query_length > 127)
+                {
+                    continue;
+                }
+
+                // Typing logic
+                if ('a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == ' ')
+                {
+                    query[query_length++] = ch;
+                    query[query_length] = '\0';
+                    cursor_column++;
+                    continue;
+                };
+
+                switch (ch)
+                {
+                    case DELETE:
+
+                        if (!query_length)
+                        {
+                            continue;
+                        }
+
+                        query[--query_length] = '\0';
+                        cursor_column--;
+                        break;
+
+                    case ARROW_UP:
+
+                        // Implement logic of window rolling to the bottom 
+                        // of the screen and focusing the last element of the table 
+                        break;
+                    
+                    case ARROW_DOWN:
+                        focus++;
+                        break;
+
+                    case ARROW_LEFT:
+
+                        if (cursor_column > 1)
+                        {
+                            cursor_column--;
+                        }
+
+                        break;
+
+                    case ARROW_RIGHT:
+
+                        if (cursor_column < 128)
+                        {
+                            cursor_column++;
+                        }
+
+                        break;
+                };
+
+                break;
+            
+            case BUTTON_FOCUSED:
+
+                
+
+                break;
+
+            case TABLE_FOCUSED:
+
+            default:
+                break;
+        }
     }
-
+    // Remmeber to return 1 for the back button
     return 0;
-
-}
-// IMplement the products page
-// Implement the table tag
-// implement the form component
-// Implement local storage?
+};
