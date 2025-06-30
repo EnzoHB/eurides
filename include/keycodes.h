@@ -56,5 +56,6 @@
 
 #define DELETE 127
 #define BACK_BUTTON DELETE + ESCAPE_MODE_OFFSET
+#define TAB 9
 
 #endif

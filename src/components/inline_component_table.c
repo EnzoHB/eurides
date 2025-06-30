@@ -84,7 +84,7 @@ void inline_component_table(Cell **cells, int width, int height)
 
             for (size_t i = 0; i < text_length - 3; i++)
             {
-                // We had to create this function otherwise spa would onsume the
+                // We had to create this function otherwise span would consume the
                 // entirety of the string on its first call, which is not the desired behavior
                 html_single_char(cell.text[i]);
             }

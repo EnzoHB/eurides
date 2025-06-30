@@ -14,6 +14,7 @@
 #include "components/inline_component_table.h"
 #include "components/inline_component_breadcrumbs.h"
 #include "components/component_chooser.h"
+#include "components/component_form.h"
 
 #include "routes/admin/products/+page.h"
 
@@ -28,6 +29,7 @@ static void footer()
    
 }
 
+#define INPUT_CHAR_LIMIT 128
 #define SEARCH_FOCUSED 0
 #define BUTTON_FOCUSED 1
 #define TABLE_FOCUSED 2
@@ -64,7 +66,8 @@ static void setup_cells()
 
     free(p);
 
-}
+};
+
 
 int route_index_admin_products()
 {
@@ -76,9 +79,9 @@ int route_index_admin_products()
     int focus = 0;
 
     // Maybe transform this in a field
-    char query[128] = "";
+    char query[INPUT_CHAR_LIMIT];
     size_t query_length = 0;
-    size_t cursor_column = 1;
+    size_t cursor_pos = 0;
     int blink = 0;
 
     static size_t header_height;
@@ -95,7 +98,7 @@ int route_index_admin_products()
 
         for (int i = 0; i < query_length; i++)
         {
-            if (blink && i + 1 == cursor_column)
+            if (focus == SEARCH_FOCUSED && blink && i == cursor_pos)
             {
                 html_single_char(cursor);
                 continue;
@@ -104,12 +107,36 @@ int route_index_admin_products()
             html_single_char(query[i]);
         };
 
-        if (blink && query_length + 1 == cursor_column)
+        if (focus == SEARCH_FOCUSED && blink && query_length == cursor_pos)
         {
             html_single_char(cursor);
         };
 
         html_br();
+
+        html_strong(1);
+        html_p("Ações:");
+        html_strong(0);
+
+        html_span(focus == BUTTON_FOCUSED && blink? "> ": "  ");
+        html_span("Novo Produto"); 
+        html_br();
+
+        html_strong(1);
+        html_p("Produtos:");
+        html_strong(0);
+        
+
+        html_br();
+
+
+
+        // Botão
+
+        // Tabela
+
+
+
 
         int ch = getch();
 
@@ -127,17 +154,20 @@ int route_index_admin_products()
         {
             case SEARCH_FOCUSED:
 
-                if (query_length > 127)
-                {
-                    continue;
-                }
-
                 // Typing logic
-                if ('a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == ' ')
+                if (query_length < INPUT_CHAR_LIMIT && (
+                    'a' <= ch && ch <= 'z' || 
+                    'A' <= ch && ch <= 'Z' || 
+                    ch == ' '))
                 {
-                    query[query_length++] = ch;
-                    query[query_length] = '\0';
-                    cursor_column++;
+                    // Derived
+                    // [E] [N] [Z] [O] [] [] []
+                    // query_length 4
+                    // cursor_pos 1
+                    // bytes = query_length - cursor_pos;
+                    memmove(&query[cursor_pos + 1], &query[cursor_pos], query_length - cursor_pos);
+                    query[cursor_pos++] = ch;
+                    query_length++;
                     continue;
                 };
 
@@ -145,19 +175,27 @@ int route_index_admin_products()
                 {
                     case DELETE:
 
-                        if (!query_length)
+                        if (query_length < 1 && cursor_pos < 1)
                         {
                             continue;
                         }
 
-                        query[--query_length] = '\0';
-                        cursor_column--;
+                        // Derived
+                        // [E] [N] [Z] [O] [] [] []
+                        // query_length 4
+                        // cursor_pos 1
+                        // bytes = query_length - cursor_pos;
+                        memmove(&query[cursor_pos - 1], &query[cursor_pos], query_length - cursor_pos);
+                        cursor_pos--;
+                        query_length--;
+                        
                         break;
 
                     case ARROW_UP:
 
                         // Implement logic of window rolling to the bottom 
                         // of the screen and focusing the last element of the table 
+                        focus--;
                         break;
                     
                     case ARROW_DOWN:
@@ -166,18 +204,18 @@ int route_index_admin_products()
 
                     case ARROW_LEFT:
 
-                        if (cursor_column > 1)
+                        if (cursor_pos > 0)
                         {
-                            cursor_column--;
+                            cursor_pos--;
                         }
 
                         break;
 
                     case ARROW_RIGHT:
 
-                        if (cursor_column < 128)
+                        if (cursor_pos < query_length)
                         {
-                            cursor_column++;
+                            cursor_pos++;
                         }
 
                         break;
@@ -187,7 +225,22 @@ int route_index_admin_products()
             
             case BUTTON_FOCUSED:
 
-                
+                switch (ch)
+                {
+                    case ENTER:
+
+                        Product product;
+                        Field fields[] = {
+                            { "Nome", &product.label, TEXT_FIELD },
+                            { "Preço", &product.price, MONEY_FIELD }
+                        };
+
+                        // Always use sizeof(<local_array>[0]) because this will
+                        // allow for both extensions and changes in typing in the future
+                        component_form(header, fields, sizeof(fields) / sizeof(fields[0]), footer);
+                        // products has to receive products.length
+                        vector_push(&products, (void *)&product);
+                }
 
                 break;
 

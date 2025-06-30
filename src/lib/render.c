@@ -6,6 +6,7 @@ static int page_height = 0;
 static int page_current_y = 0;
 static int window_start_y = 0;
 static int window_end_y = 40;
+static int bold = 0;
 
 // https://www.reddit.com/r/learnprogramming/comments/o7xae7/best_way_to_clear_terminal_in_c/
 void clear_screen() 
@@ -43,11 +44,13 @@ void html_strong(int open)
 {
     if (open)
     {
+        bold = 1;
         printf("\033[1m");
     }
 
     if (open == 0)
     {
+        bold = 0;
         printf("\033[0m");
     }
 }
@@ -69,6 +72,17 @@ void html_p(char *line)
     html_span(line);
     html_br();
 }
+
+void term_set_prefix(char *line)
+{
+    // Create a function that helps prefixing pages  
+}
+
+void term_clear_prefix()
+{
+
+}
+
 
 // Renders a null terminating array of strings to the console
 void render(char **lines)
