@@ -35,6 +35,8 @@ static void footer()
 #define BUTTON_FOCUSED 1
 #define TABLE_FOCUSED 2
 
+#define ACTION_NEW 0
+
 static Vector products;
 static char path[] = "../../../../data/products.dat";
 static int products_initialized = 0;
@@ -89,8 +91,10 @@ int route_index_admin_products()
     char query[128];
     int query_length = 0;
     int cursor_pos = 0;
+    // Actions
+    int action_selected = 0;
     // Table support
-    int item_focused = 0;
+    int item_selected = 0;
 
     // We need to abstract this logic to allow for the coupling of fields
     while(1)
@@ -164,7 +168,7 @@ int route_index_admin_products()
         static const size_t c1_length = 1;
         static const size_t c2_length = 3;
         static const size_t c3_length = 28;
-        static const size_t c4_length = 10;
+        static const size_t c4_length = 12;
         static Cell h1 = { 1, ALIGN_LEFT, c1_length, "#" };
         static Cell h2 = { 1, ALIGN_LEFT, c2_length, "ID" };  
         static Cell h3 = { 1, ALIGN_LEFT, c3_length, "Nome" };
@@ -177,7 +181,7 @@ int route_index_admin_products()
         for (int j = 0; j < products.length; j++)
         {
             Product *product = &((Product *)products.elements)[j];
-            int bold = item_focused == j? 1 : 0;
+            int bold = item_selected == j? 1 : 0;
             char id[32] ;
             char price[32];
             char pretty_price[32];
@@ -194,22 +198,18 @@ int route_index_admin_products()
             Cell *c2 = &cells[(j + 1) * columns + 1];
             Cell *c3 = &cells[(j + 1) * columns + 2];
             Cell *c4 = &cells[(j + 1) * columns + 3];
-
             c1->bold = bold;
             c1->align = ALIGN_LEFT;
             c1->length = c1_length;
-            snprintf(c1->text, sizeof(c1->text), "%s", bold ? ">" : " ");
-
+            snprintf(c1->text, sizeof(c1->text), "%s", focus == TABLE_FOCUSED && bold ? ">" : " ");
             c2->bold = bold;
             c2->align = ALIGN_RIGHT;
             c2->length = c2_length;
             snprintf(c2->text, sizeof(c2->text), "%s", id);
-
             c3->bold = bold;
             c3->align = ALIGN_LEFT;
             c3->length = c3_length;
             snprintf(c3->text, sizeof(c3->text), "%s", product->label);
-
             c4->bold = bold;
             c4->align = ALIGN_LEFT;
             c4->length = c4_length;
@@ -221,24 +221,19 @@ int route_index_admin_products()
         // Blinking logic
         blink = ch == -1? blink? 0: 1: 1;
 
-        switch (ch)
-        {
-            case ARROW_DOWN:
-            {
-                focus++;
-                continue;;
-            }
-            case ARROW_UP:
-            {
-                focus--;
-                continue;;
-            }
-        };
-
         switch (focus)
         {
             case SEARCH_FOCUSED:
             {
+                switch (ch)
+                {
+                    case ARROW_DOWN:
+                    {
+                        focus++;
+                        continue;
+                    }
+                }
+
                 input_text_controller(ch, (char *)&query, &query_length, &cursor_pos, QUERY_MAX_LENGTH);
                 break;
             }
@@ -248,22 +243,79 @@ int route_index_admin_products()
                 {
                     case ENTER:
                     {
-                        Product product = {};
-                        Field fields[] = {
-                            { "Nome", &product.label, TEXT_FIELD },
-                            { "Preço", &product.price, MONEY_FIELD }
-                        };
-                        // Always use sizeof(<local_array>[0]) because this will
-                        // allow for both extensions and changes in typing in the future
-                        component_form(header, fields, sizeof(fields) / sizeof(fields[0]),"Produtos", footer);
-                        product.id = products.length + 1;
-                        // products has to receive products.length
-                        vector_push(&products, (void *)&product);
+                        switch (item_selected)
+                        {
+                            case ACTION_NEW:
+                            {
+                                Product product = {};
+                                Field fields[] = {
+                                    { "Nome", &product.label, TEXT_FIELD },
+                                    { "Preço", &product.price, MONEY_FIELD }
+                                };
+                                // Always use sizeof(<local_array>[0]) because this will
+                                // allow for both extensions and changes in typing in the future
+                                component_form(header, fields, sizeof(fields) / sizeof(fields[0]),"Produtos", footer);
+                                product.id = products.length + 1;
+                                // products has to receive products.length
+                                vector_push(&products, (void *)&product);
+                                continue;
+                            }
+                        }
+                    }
+                    case ARROW_DOWN:
+                    {
+                        // item_selected + 1 >= qtd_actions
+                        if (action_selected + 1 >= 1)
+                        {
+                            focus++;
+                            continue;
+                        }
+
+                        action_selected++;
+                    }
+                    case ARROW_UP:
+                    {
+                        if (action_selected - 1 < 0)
+                        {
+                            focus--;
+                            continue;
+                        }
+
+                        action_selected--;
                     }
                 }
                 break;
             };
             case TABLE_FOCUSED:
+            {
+                switch (ch)
+                {
+                    case ENTER:
+                    {
+
+                    }
+                    case ARROW_DOWN:
+                    {
+                        // item_selected + 1 >= qtd_actions
+                        if (item_selected + 1 >= products.length)
+                        {
+                            continue;
+                        }
+
+                        item_selected++;
+                    }
+                    case ARROW_UP:
+                    {
+                        if (item_selected - 1 < 0)
+                        {
+                            focus--;
+                            continue;
+                        }
+
+                        item_selected--;
+                    }
+                }
+            }
         }
     }
     // Remmeber to return 1 for the back button
