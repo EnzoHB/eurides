@@ -4,46 +4,49 @@
 #include <string.h>
 #include <stdio.h>
 
-static int before_length_increment(Vector *vector)
+static int resize_to_fit(Vector *vector, int length)
 {
-    if (vector->capacity < vector->length + 1)
+    if (vector->capacity < length)
     {
-        // Doubles the memory allocated to this vector
-        void* p = realloc(vector->elements, vector->element_size * vector->capacity * 2);
+        while(1)
+        {
+            vector->capacity *= 2;
 
-        if (p == NULL)
+            if (vector->capacity >= length)
+            {
+                break;
+            };
+        }
+    }
+    else if (vector->capacity >= length) 
+    {
+        if (vector->capacity == 1 && length < 1)
         {
             return 1;
         }
 
-        vector->capacity *= 2;
-        vector->elements = p;
+        while(1)
+        {
+            int half = vector->capacity / 2;
+
+            if (length <= half)
+            {
+                vector->capacity = half;;
+                break;
+            };
+
+            return 0;
+        }
     }
 
-    return 0;
-};
-
-static int before_length_decrement(Vector *vector)
-{
-    if (vector->capacity == 1)
+    void *p = realloc(vector->elements, vector->element_size * vector->capacity);
+                
+    if (p == NULL)
     {
         return 1;
     }
 
-    if (vector->length <= vector->capacity / 2)
-    {
-        // Halves the memory allocated to this vector
-        void* p = realloc(vector->elements, vector->element_size * vector->capacity / 2);
-
-        if (p == NULL)
-        {
-            return 1;
-        }
-
-        vector->capacity /= 2;
-        vector->elements = p;
-    }
-
+    vector->elements = p;
     return 0;
 }
 
@@ -56,17 +59,9 @@ Vector *vector_init(Vector *vector, size_t element_size)
     return vector;
 }
 
-size_t vector_push(Vector *vector, void *p)
+int vector_push(Vector *vector, void *p)
 {
-    if (before_length_increment(vector))
-    {
-        return vector->length; 
-    }
-    // Here we have to cast the vector->elements to a char pointer to allow for 
-    // pointer arithmetic. As every char occuppies exactly one byte, we can move
-    // byte by byte when copying memory
-    memcpy((char*)vector->elements + vector->length * vector->element_size, p, vector->element_size);
-    return ++vector->length;
+    return vector_insert(vector, vector->length, p);
 };
 
 Vector *vector_populate_from_file(Vector *vector, char *path)
@@ -119,3 +114,40 @@ Vector *vector_populate_from_file(Vector *vector, char *path)
     fclose(file);
     return vector;
 };
+
+int vector_insert(Vector *vector, int index, void *p)
+{
+    if (index < 0 || index > vector->length)
+    {
+        return 1; 
+    }
+
+    if (resize_to_fit(vector, vector->length + 1))
+    {
+        return 1;
+    };
+
+    memmove(
+        (char *)vector->elements + vector->element_size * (index + 1), 
+        (char *)vector->elements + vector->element_size * (index), 
+        (vector->length - index) * vector->element_size
+    );
+    memcpy(
+        (char *)vector->elements + vector->element_size * (index), 
+        p, 
+        vector->element_size
+    );
+    return ++vector->length;
+}
+
+int vector_remove(Vector *vector, int index)
+{
+    if (index < 0 || index >= vector->length)
+    {
+        return 1; 
+    };
+
+    memmove((char *)vector->elements + index, vector->elements + index + 1, (vector->length - (index + 1)) * vector->element_size);
+    resize_to_fit(vector, vector->length - 1);
+    return --vector->length;
+}

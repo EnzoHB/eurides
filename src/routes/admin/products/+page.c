@@ -147,7 +147,7 @@ int route_index_admin_products()
         }
 
         html_strong(1);
-        printf("Tabela (%zu):", products.length);
+        printf("Tabela (%d):", products.length);
         html_br();
         html_strong(0);
 
@@ -181,7 +181,7 @@ int route_index_admin_products()
         for (int j = 0; j < products.length; j++)
         {
             Product *product = &((Product *)products.elements)[j];
-            int bold = item_selected == j? 1 : 0;
+            int bold = focus == TABLE_FOCUSED && item_selected == j? 1 : 0;
             char id[32] ;
             char price[32];
             char pretty_price[32];
@@ -201,7 +201,7 @@ int route_index_admin_products()
             c1->bold = bold;
             c1->align = ALIGN_LEFT;
             c1->length = c1_length;
-            snprintf(c1->text, sizeof(c1->text), "%s", focus == TABLE_FOCUSED && bold ? ">" : " ");
+            snprintf(c1->text, sizeof(c1->text), "%s", bold? ">" : " ");
             c2->bold = bold;
             c2->align = ALIGN_RIGHT;
             c2->length = c2_length;
@@ -303,6 +303,7 @@ int route_index_admin_products()
                         }
 
                         item_selected++;
+                        break;
                     }
                     case ARROW_UP:
                     {
@@ -313,6 +314,7 @@ int route_index_admin_products()
                         }
 
                         item_selected--;
+                        break;
                     }
                 }
             }

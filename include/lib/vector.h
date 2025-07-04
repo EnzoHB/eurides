@@ -6,8 +6,8 @@
 // Generic dinamic array which grows on insertion
 // and shrinks on deletion. 
 typedef struct Vector {
-    size_t length;
-    size_t capacity;
+    int length;
+    int capacity;
     size_t element_size;
     void* elements;
 } Vector;
@@ -17,9 +17,12 @@ typedef struct Vector {
 Vector *vector_init(Vector* vector, size_t element_size);
 
 // Pushes the pointer to the end of the array
-size_t vector_push(Vector* vector, void* p);
+int vector_push(Vector* vector, void* p);
 
 // Gets the path to a file and populates the vector based on the file contents
 Vector *vector_populate_from_file(Vector* vector, char *path);
+
+int vector_insert(Vector *vector, int index, void *p);
+int vector_remove(Vector *vector, int index);
 
 #endif
