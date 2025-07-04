@@ -8,6 +8,7 @@
 #include "lib/terminal.h"
 #include "lib/render.h"
 #include "lib/vector.h"
+#include "lib/utils.h"
 
 #include "assets/asset_banner.h"
 
@@ -29,17 +30,18 @@ static void footer()
    
 }
 
-#define INPUT_CHAR_LIMIT 128
+#define QUERY_MAX_LENGTH 128
 #define SEARCH_FOCUSED 0
 #define BUTTON_FOCUSED 1
 #define TABLE_FOCUSED 2
 
-static Vector cells;
 static Vector products;
-
 static char path[] = "../../../../data/products.dat";
 static int products_initialized = 0;
+static Cell *cells;
 static int cells_initialized = 0;
+static int rows;
+static int columns = 4;
 
 static void setup_products()
 {
@@ -52,40 +54,44 @@ static void setup_products()
     vector_init(&products, sizeof(Product));
     vector_populate_from_file(&products, path);
     products_initialized++;
-
 };
 
 static void setup_cells()
 {
-    if (cells_initialized)
+    // We have to make sure that products is intialized
+    // before we call setup_cells();
+    if (cells_initialized || !products_initialized)
     {
         return;
     }
 
-    void *p = malloc(sizeof(Cell));
+    // Header
+    rows = products.length + 1;
+    cells = malloc(sizeof(Cell) * columns * rows);
 
-    free(p);
+    if (cells == NULL)
+    {
+        exit(1);
+    };
 
+    cells_initialized++;
 };
 
 
 int route_index_admin_products()
 {
-    static char cursor = '_'; // '█';
-
+    static char cursor_character = '_'; // '█';
     setup_products();   
     setup_cells();
-
     int focus = 0;
-
-    // Maybe transform this in a field
-    char query[INPUT_CHAR_LIMIT];
-    size_t query_length = 0;
-    size_t cursor_pos = 0;
     int blink = 0;
+    // Search support TODO: vectorize this
+    char query[128];
+    int query_length = 0;
+    int cursor_pos = 0;
+    // Table support
+    int item_focused = 0;
 
-    static size_t header_height;
-    
     // We need to abstract this logic to allow for the coupling of fields
     while(1)
     {
@@ -93,161 +99,171 @@ int route_index_admin_products()
         header();
 
         html_strong(1);
-            html_span("Pesquisar: ");
+        html_p("Pesquisar:");
         html_strong(0);
 
-        for (int i = 0; i < query_length; i++)
+        if (focus == SEARCH_FOCUSED)
         {
-            if (focus == SEARCH_FOCUSED && blink && i == cursor_pos)
+            html_span(">> ");
+
+            for (int i = 0; i < query_length; i++)
             {
-                html_single_char(cursor);
-                continue;
-            }
+                if (blink && i == cursor_pos)
+                {
+                    html_single_char(cursor_character);
+                    continue;
+                }
 
-            html_single_char(query[i]);
-        };
+                html_single_char(query[i]);
+            };
 
-        if (focus == SEARCH_FOCUSED && blink && query_length == cursor_pos)
+            if (blink && query_length == cursor_pos)
+            {
+                html_single_char(cursor_character);
+            };
+        }
+        else 
         {
-            html_single_char(cursor);
+            html_span("   ");
+            html_span(query_length? query: "");
         };
-
+        
         html_br();
-
         html_strong(1);
         html_p("Ações:");
         html_strong(0);
 
-        html_span(focus == BUTTON_FOCUSED && blink? "> ": "  ");
-        html_span("Novo Produto"); 
-        html_br();
-
-        html_strong(1);
-        html_p("Produtos:");
-        html_strong(0);
-        
-
-        html_br();
-
-
-
-        // Botão
-
-        // Tabela
-
-
-
-
-        int ch = getch();
-
-        // Blinking logic
-        if (ch == -1)
+        if (focus == BUTTON_FOCUSED)
         {
-            blink += blink? -1: 1;    
+            html_p("> Novo Produto");
         }
         else 
         {
-            blink = 1;
+            html_p("  Novo Produto");
         }
+
+        html_strong(1);
+        printf("Tabela (%zu):", products.length);
+        html_br();
+        html_strong(0);
+
+        if (rows != products.length + 1)
+        {
+            void *p = realloc(cells, sizeof(Cell) * columns * (products.length + 1));
+
+            if (p == NULL)
+            {
+                exit(0);
+                return 1;
+            }
+
+            cells = p;
+            rows = products.length + 1;
+        };
+
+        static const size_t c1_length = 1;
+        static const size_t c2_length = 3;
+        static const size_t c3_length = 28;
+        static const size_t c4_length = 10;
+        static Cell h1 = { 1, ALIGN_LEFT, c1_length, "#" };
+        static Cell h2 = { 1, ALIGN_LEFT, c2_length, "ID" };  
+        static Cell h3 = { 1, ALIGN_LEFT, c3_length, "Nome" };
+        static Cell h4 = { 1, ALIGN_LEFT, c4_length, "Valor" };;
+        cells[0 + 0] = h1;;
+        cells[0 + 1] = h2;
+        cells[0 + 2] = h3;
+        cells[0 + 3] = h4;
+
+        for (int j = 0; j < products.length; j++)
+        {
+            Product *product = &((Product *)products.elements)[j];
+            int bold = item_focused == j? 1 : 0;
+            char id[32] ;
+            char price[32];
+            char pretty_price[32];
+            int_to_numeral(product->id, id, sizeof(id));
+            int_to_numeral(product->price, price, sizeof(price));
+            format_price(price, pretty_price);
+            // We  have to use this intialization strategy or else the buffer
+            // gets overwritten on each subsequent loop iteration. The downside
+            // of this approach is that we limit the maximum number of characters
+            // to the size of the internal buffer of Cell
+            // This of course could have been mitigated by dinamically allocating memory for this operation
+            // however, I neither have the time nor the patience to debug the errors of this
+            Cell *c1 = &cells[(j + 1) * columns + 0];
+            Cell *c2 = &cells[(j + 1) * columns + 1];
+            Cell *c3 = &cells[(j + 1) * columns + 2];
+            Cell *c4 = &cells[(j + 1) * columns + 3];
+
+            c1->bold = bold;
+            c1->align = ALIGN_LEFT;
+            c1->length = c1_length;
+            snprintf(c1->text, sizeof(c1->text), "%s", bold ? ">" : " ");
+
+            c2->bold = bold;
+            c2->align = ALIGN_RIGHT;
+            c2->length = c2_length;
+            snprintf(c2->text, sizeof(c2->text), "%s", id);
+
+            c3->bold = bold;
+            c3->align = ALIGN_LEFT;
+            c3->length = c3_length;
+            snprintf(c3->text, sizeof(c3->text), "%s", product->label);
+
+            c4->bold = bold;
+            c4->align = ALIGN_LEFT;
+            c4->length = c4_length;
+            snprintf(c4->text, sizeof(c4->text), "%s", pretty_price);
+        }
+
+        inline_component_table(cells, columns, rows);
+        int ch = getch();
+        // Blinking logic
+        blink = ch == -1? blink? 0: 1: 1;
+
+        switch (ch)
+        {
+            case ARROW_DOWN:
+            {
+                focus++;
+                continue;;
+            }
+            case ARROW_UP:
+            {
+                focus--;
+                continue;;
+            }
+        };
 
         switch (focus)
         {
             case SEARCH_FOCUSED:
-
-                // Typing logic
-                if (query_length < INPUT_CHAR_LIMIT && (
-                    'a' <= ch && ch <= 'z' || 
-                    'A' <= ch && ch <= 'Z' || 
-                    ch == ' '))
-                {
-                    // Derived
-                    // [E] [N] [Z] [O] [] [] []
-                    // query_length 4
-                    // cursor_pos 1
-                    // bytes = query_length - cursor_pos;
-                    memmove(&query[cursor_pos + 1], &query[cursor_pos], query_length - cursor_pos);
-                    query[cursor_pos++] = ch;
-                    query_length++;
-                    continue;
-                };
-
-                switch (ch)
-                {
-                    case DELETE:
-
-                        if (query_length < 1 && cursor_pos < 1)
-                        {
-                            continue;
-                        }
-
-                        // Derived
-                        // [E] [N] [Z] [O] [] [] []
-                        // query_length 4
-                        // cursor_pos 1
-                        // bytes = query_length - cursor_pos;
-                        memmove(&query[cursor_pos - 1], &query[cursor_pos], query_length - cursor_pos);
-                        cursor_pos--;
-                        query_length--;
-                        
-                        break;
-
-                    case ARROW_UP:
-
-                        // Implement logic of window rolling to the bottom 
-                        // of the screen and focusing the last element of the table 
-                        focus--;
-                        break;
-                    
-                    case ARROW_DOWN:
-                        focus++;
-                        break;
-
-                    case ARROW_LEFT:
-
-                        if (cursor_pos > 0)
-                        {
-                            cursor_pos--;
-                        }
-
-                        break;
-
-                    case ARROW_RIGHT:
-
-                        if (cursor_pos < query_length)
-                        {
-                            cursor_pos++;
-                        }
-
-                        break;
-                };
-
+            {
+                input_text_controller(ch, (char *)&query, &query_length, &cursor_pos, QUERY_MAX_LENGTH);
                 break;
-            
+            }
             case BUTTON_FOCUSED:
-
+            {
                 switch (ch)
                 {
                     case ENTER:
-
-                        Product product;
+                    {
+                        Product product = {};
                         Field fields[] = {
                             { "Nome", &product.label, TEXT_FIELD },
                             { "Preço", &product.price, MONEY_FIELD }
                         };
-
                         // Always use sizeof(<local_array>[0]) because this will
                         // allow for both extensions and changes in typing in the future
-                        component_form(header, fields, sizeof(fields) / sizeof(fields[0]), footer);
+                        component_form(header, fields, sizeof(fields) / sizeof(fields[0]),"Produtos", footer);
+                        product.id = products.length + 1;
                         // products has to receive products.length
                         vector_push(&products, (void *)&product);
+                    }
                 }
-
                 break;
-
+            };
             case TABLE_FOCUSED:
-
-            default:
-                break;
         }
     }
     // Remmeber to return 1 for the back button

@@ -22,6 +22,10 @@ void clear_screen();
 int get_current_height(); // Always remember to add semicolon
 // Renders a single char to the screen. used in for loop iteration
 void html_single_char(char letter);
-int move_cursor(int row, int column) ;
+// Receives an integer and prints the formated currency in brazilian R$
+// Keep in mind that integers from 1 to 100 represent cents
+void html_currency(int x);
+// This is how currency is rendered internally via a char array
+void _html_currency(char *currency, int length);
 
 #endif

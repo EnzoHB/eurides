@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -I./include -std=c99
+CFLAGS = -I./include -std=c11
 SRC = $(shell find src -name '*.c')
 OUT = main
 

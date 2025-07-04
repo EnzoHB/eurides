@@ -12,6 +12,6 @@ typedef struct Field {
     int type;
 } Field;
 
-void component_form(void (*header)(), Field *fields, size_t fields_length, void (*footer)());
+void component_form(void (*header)(), Field *fields, size_t fields_length, char *title, void (*footer)());
 
 #endif

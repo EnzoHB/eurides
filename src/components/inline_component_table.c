@@ -11,7 +11,18 @@ static void white_space(size_t times)
     };
 }
 
-void inline_component_table(Cell **cells, int width, int height)
+void divider(int width)
+{
+    // Render the line altogether
+    for (int i = 0; i < width; i++)
+    {
+        html_span("-");
+    }
+
+    html_br();
+}
+
+void inline_component_table(Cell *cells, int width, int height)
 {
     if (width == 0)
     {
@@ -28,22 +39,23 @@ void inline_component_table(Cell **cells, int width, int height)
     // We have to account for border in between cells
     // ----------------------------------------
     // | Something | Something | Something |
-    int line_width = width + 1; 
+    int line_width = (width + 1 - 2) * 3 + 2 * 2; 
     // Calculating the line width of the rendered table
     // while concurrently rendering it;
     html_span("-");
 
     for (int i = 0; i < width; i++)
     {
-        int length = cells[0][i].length; 
+        int length = cells[i].length; 
+        html_span("-");
 
-        // length + 1 is the amount of characters 
-        // until the top-left border of the next cell
-        for (int k = 0; k < length + 1; k++)
+        // Length is the length of the field
+        for (int k = 0; k < length; k++)
         {
             html_span("-");
         }
 
+        html_span("--");
         line_width += length;
     };
 
@@ -51,12 +63,15 @@ void inline_component_table(Cell **cells, int width, int height)
 
     for (int j = 0; j < height; j++)
     {
-        html_span("|");
+        html_span("| ");
 
-        for (int i = 0; i < width; i++, html_span("|"))
+        Cell cell = cells[0];
+        
+        for (int i = 0; i < width; i++, cell.bold? html_strong(0): 0, i < width? html_span(" | ") : 0)
         {
-            Cell cell = cells[j][i];
+            cell = cells[j * width + i];
             size_t text_length = strlen(cell.text);
+            cell.bold? html_strong(1): 0;
 
             if (text_length < cell.length)
             {
@@ -91,11 +106,9 @@ void inline_component_table(Cell **cells, int width, int height)
 
             html_span("...");
         }
+        
+        html_span(" |");
+        html_br();
+        divider(line_width);
     };
-
-    // Render the line altogether
-    for (int i = 0; i < line_width; i++)
-    {
-        html_span("-");
-    }
 }

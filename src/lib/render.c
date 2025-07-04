@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <unistd.h>
 #include "lib/render.h"
+#include "lib/utils.h"
+#include <string.h>
 
 static int page_height = 0;
 static int page_current_y = 0;
@@ -61,6 +63,52 @@ void html_span(char *line)
     printf("%s", line);
 }
 
+void html_currency(int x)
+{
+    char y[32];
+    int_to_numeral(x, y, sizeof(y));
+    _html_currency((char *)&y, strlen(y));
+}
+
+void _html_currency(char *currency, int j)
+{
+    html_span("R$ ");
+
+    switch (j)
+    {
+        case 0:
+        case 1:
+        case 2:
+
+            html_span("0,");
+            
+            for (int k = 0; k < 2 - j; k++)
+            {
+                html_single_char('0');
+            }
+
+            for (int k = 0; k < j; k++)
+            {
+                html_single_char(*(currency + k));
+            }
+
+            break;
+        
+        default:    
+
+            for (int k = 0; k < j - 2; k++)
+            {
+                html_single_char(*(currency + k));
+            }
+
+            html_single_char(',');
+            html_single_char(*(currency + j - 2));
+            html_single_char(*(currency + j - 1));
+
+        break;
+    };
+};
+
 void html_single_char(char letter)
 {
     printf("%c", letter);
@@ -73,12 +121,12 @@ void html_p(char *line)
     html_br();
 }
 
-void term_set_prefix(char *line)
+void terminal_set_prefix(char *line)
 {
     // Create a function that helps prefixing pages  
 }
 
-void term_clear_prefix()
+void terminal_clear_prefix()
 {
 
 }
